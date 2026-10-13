@@ -174,7 +174,7 @@ PIXI.loader
     f2.red.x = -2; f2.red.y = 2;
     f2.green.x = 0; f2.green.y = 0;
     f2.blue.x = 2;  f2.blue.y = -2;
-    if (!flags.nofx) container.filters = [f2, f1];
+    if (!flags.off.bg) container.filters = [f2, f1];
     container.addChild(d1);
 
     // PICKLES
@@ -188,7 +188,7 @@ PIXI.loader
       p.pivot.y = 263 / 2;
       p.scale.x = 0.5;
       p.scale.y = 0.5;
-      if (!flags.nofx) p.filters = [shadow];
+      if (!flags.off.pickle) p.filters = [shadow];
       pickles[i] = p;
       pickleAlive[i] = true;
       foreground.addChild(p);
@@ -207,7 +207,7 @@ PIXI.loader
     // CAT DISPLACEMENT
     catd = new PIXI.Sprite(resources.catdisplacement.texture);
     catf = new PIXI.filters.DisplacementFilter(catd, 0);
-    if (!flags.nofx) cat.filters = [catf];
+    if (!flags.off.cat) cat.filters = [catf];
     cat.addChild(catd);
 
     // STAGE FILTERS
@@ -215,7 +215,7 @@ PIXI.loader
       var brightness = new PIXI.filters.ColorMatrixFilter();
       brightness.brightness(0.8, 1);
       var bloom = new PIXI.filters.BloomFilter();
-      if (!flags.nofx) stage.filters = [brightness, bloom];
+      if (!flags.off.stage) stage.filters = [brightness, bloom];
     } catch(e) {
     }
 
