@@ -236,6 +236,7 @@ PIXI.loader
     });
 
     dg('loaded; starting animate');
+    if (flags.debug) setTimeout(runDiagnostics, 2500);
     animate();
   });
 
@@ -316,6 +317,45 @@ function checkHit(lx, ly) {
     }
   }
   return false;
+}
+
+// ?debug: render each part alone and count the pixels it draws, so a blank
+// canvas on some browser/GPU can be traced to the exact filter at fault.
+function runDiagnostics() {
+  var gl = renderer.gl;
+  if (!gl) { dg('diag: Canvas renderer (no WebGL)'); return; }
+  var buf = new Uint8Array(w * h * 4);
+  function drawn() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    var n = 0;
+    for (var i = 0; i < buf.length; i += 4) { if (buf[i] + buf[i+1] + buf[i+2] > 30) n++; }
+    return Math.round(100 * n / (w * h)) + '%';
+  }
+  function trial(name, setup, teardown) {
+    while (gl.getError() !== gl.NO_ERROR) {}
+    var saved = [container.visible, foreground.visible, laserLayer.visible, fxLayer.visible, stage.filters];
+    stage.filters = null;
+    laserLayer.visible = fxLayer.visible = false;
+    setup();
+    renderer.render(stage);
+    var res = drawn(), err = gl.getError();
+    teardown();
+    container.visible = saved[0]; foreground.visible = saved[1];
+    laserLayer.visible = saved[2]; fxLayer.visible = saved[3]; stage.filters = saved[4];
+    dg('diag ' + name + ': drawn=' + res + ' glError=' + err);
+  }
+  var bgFilters = container.filters, catFilters = cat.filters;
+  var onlyBg  = function() { container.visible = true;  foreground.visible = false; };
+  var onlyFg  = function() { container.visible = false; foreground.visible = true;  };
+  var pk = function(v) { pickles.forEach(function(p) { p.visible = v; }); };
+  var none = function() {};
+  trial('bg   +filters', onlyBg, none);
+  trial('bg   no filter', function() { onlyBg(); container.filters = null; }, function() { container.filters = bgFilters; });
+  trial('cat  +filter', function() { onlyFg(); pk(false); }, function() { pk(true); });
+  trial('cat  no filter', function() { onlyFg(); pk(false); cat.filters = null; }, function() { pk(true); cat.filters = catFilters; });
+  trial('pickles', function() { onlyFg(); cat.visible = false; }, function() { cat.visible = true; });
+  dg('diag done');
 }
 
 function animate() {
