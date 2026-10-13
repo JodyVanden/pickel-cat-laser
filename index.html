@@ -29,6 +29,7 @@ canvas { display: block; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.11/pixi.min.js"></script>
 <script src="eyes.js"></script>
 <script src="layout.js"></script>
+<script src="pickles.js"></script>
 <script>
 
 
@@ -261,7 +262,7 @@ function animate() {
   cat.rotation = 0.04 * Math.cos(d / 1000);
 
   for (var i = 0; i < pickles.length; i++) {
-    pickles[i].position.x = ((d/(25+i) + i*700)) % (w+800) - 400;
+    pickles[i].position.x = pickleX(d, i, pickles.length, w);
     pickles[i].position.y = 100 * Math.sin(i + d/5000) + 150;
     if (pickleAlive[i]) {
       pickles[i].rotation = Math.sign(i-1.5) * d / (2500+300*i);
