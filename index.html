@@ -210,13 +210,19 @@ PIXI.loader
     if (!flags.off.cat) cat.filters = [catf];
     cat.addChild(catd);
 
-    // STAGE FILTERS
-    try {
-      var brightness = new PIXI.filters.ColorMatrixFilter();
-      brightness.brightness(0.8, 1);
-      var bloom = new PIXI.filters.BloomFilter();
-      if (!flags.off.stage) stage.filters = [brightness, bloom];
-    } catch(e) {
+    // GLOW + DIMMING
+    // A stage-wide filter wraps objects that have their own filters; Firefox
+    // can't draw nested filters like that and leaves the canvas blank. So dim
+    // with a CSS filter instead, and put the bloom only on the laser/explosion
+    // layers, which have no filtered children.
+    if (!flags.off.stage) {
+      renderer.view.style.filter = 'brightness(0.8)';
+      try {
+        laserLayer.filters = [new PIXI.filters.BloomFilter()];
+        fxLayer.filters    = [new PIXI.filters.BloomFilter()];
+      } catch(e) {
+        console.error('Glow filter unavailable: ' + e.message);
+      }
     }
 
     // Track the pointer for the cat's displacement effect (mouse and touch)
