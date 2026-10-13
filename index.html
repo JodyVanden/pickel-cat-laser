@@ -44,6 +44,7 @@ canvas { display: block; }
   <a href="https://github.com/jodyvanden" target="_blank" rel="noopener">GitHub</a> ·
   <a href="https://www.linkedin.com/in/jodyvandenschrick" target="_blank" rel="noopener">LinkedIn</a></div>
 <div id="error" role="alert"></div>
+<div id="diag" style="display:none;position:fixed;top:60px;left:10px;z-index:30;color:#0f0;font:12px monospace;white-space:pre;background:rgba(0,0,0,.75);padding:6px"></div>
 <div id="hint">⚡ CLICK TO FIRE LASER ⚡</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.11/pixi.min.js"></script>
@@ -52,6 +53,7 @@ canvas { display: block; }
 <script src="src/pickles.js"></script>
 <script src="src/loaderror.js"></script>
 <script src="src/pointer.js"></script>
+<script src="src/flags.js"></script>
 <script>
 
 function showLoadError(detail) {
@@ -64,6 +66,16 @@ if (typeof PIXI === 'undefined') {
   showLoadError('PixiJS did not load');
   throw new Error('PixiJS missing');
 }
+
+var flags = parseFlags(location.search);
+function dg(msg) {
+  if (!flags.debug) return;
+  var el = document.getElementById('diag');
+  el.style.display = 'block';
+  el.textContent += msg + '\n';
+}
+window.addEventListener('error', function(e) { dg('ERR ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); });
+dg('flags: ' + JSON.stringify(flags) + '  UA: ' + navigator.userAgent);
 
 var song = document.getElementById('song');
 song.volume = 0.6;
@@ -84,6 +96,12 @@ try {
 }
 
 document.body.appendChild(renderer.view);
+dg('renderer: ' + (renderer instanceof PIXI.WebGLRenderer ? 'WebGL' : 'Canvas'));
+if (renderer.gl) {
+  var gl = renderer.gl, dbi = gl.getExtension('WEBGL_debug_renderer_info');
+  dg('GL: ' + gl.getParameter(gl.VERSION) + ' | ' + (dbi ? gl.getParameter(dbi.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)));
+  dg('MAX_TEXTURE_SIZE: ' + gl.getParameter(gl.MAX_TEXTURE_SIZE));
+}
 renderer.view.style.position = 'absolute';
 // window.innerWidth/innerHeight grow with the 1024px canvas on phones; the
 // document element's client size is the real visible area.
@@ -156,7 +174,7 @@ PIXI.loader
     f2.red.x = -2; f2.red.y = 2;
     f2.green.x = 0; f2.green.y = 0;
     f2.blue.x = 2;  f2.blue.y = -2;
-    container.filters = [f2, f1];
+    if (!flags.nofx) container.filters = [f2, f1];
     container.addChild(d1);
 
     // PICKLES
@@ -170,7 +188,7 @@ PIXI.loader
       p.pivot.y = 263 / 2;
       p.scale.x = 0.5;
       p.scale.y = 0.5;
-      p.filters = [shadow];
+      if (!flags.nofx) p.filters = [shadow];
       pickles[i] = p;
       pickleAlive[i] = true;
       foreground.addChild(p);
@@ -189,7 +207,7 @@ PIXI.loader
     // CAT DISPLACEMENT
     catd = new PIXI.Sprite(resources.catdisplacement.texture);
     catf = new PIXI.filters.DisplacementFilter(catd, 0);
-    cat.filters = [catf];
+    if (!flags.nofx) cat.filters = [catf];
     cat.addChild(catd);
 
     // STAGE FILTERS
@@ -197,7 +215,7 @@ PIXI.loader
       var brightness = new PIXI.filters.ColorMatrixFilter();
       brightness.brightness(0.8, 1);
       var bloom = new PIXI.filters.BloomFilter();
-      stage.filters = [brightness, bloom];
+      if (!flags.nofx) stage.filters = [brightness, bloom];
     } catch(e) {
     }
 
@@ -211,6 +229,7 @@ PIXI.loader
       if (p) fireLaser(p.x, p.y);
     });
 
+    dg('loaded; starting animate');
     animate();
   });
 
