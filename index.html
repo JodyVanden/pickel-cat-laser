@@ -2,10 +2,11 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pickle Cat — Laser Edition</title>
 <style>
 * { margin: 0; padding: 0; }
-html, body { height: 100%; background: #000; overflow: hidden; cursor: crosshair; }
+html, body { height: 100%; background: #000; overflow: hidden; cursor: crosshair; touch-action: none; -webkit-user-select: none; user-select: none; }
 canvas { display: block; }
 #hud {
   position: fixed; top: 16px; right: 20px;
@@ -50,6 +51,7 @@ canvas { display: block; }
 <script src="src/layout.js"></script>
 <script src="src/pickles.js"></script>
 <script src="src/loaderror.js"></script>
+<script src="src/pointer.js"></script>
 <script>
 
 function showLoadError(detail) {
@@ -65,10 +67,11 @@ if (typeof PIXI === 'undefined') {
 
 var song = document.getElementById('song');
 song.volume = 0.6;
-document.body.addEventListener('click',      function() { song.play(); });
-document.body.addEventListener('touchstart', function() { song.play(); });
+function startMusic() { var p = song.play(); if (p && p.catch) p.catch(function() {}); }
+['pointerup', 'touchend', 'click'].forEach(function(t) { document.addEventListener(t, startMusic); });
 
-document.getElementById('credit').addEventListener('click', function(e) { e.stopPropagation(); });
+// Taps on the credit links must not fire a laser
+document.getElementById('credit').addEventListener('pointerdown', function(e) { e.stopPropagation(); });
 
 var w = 1024, h = 768;
 
@@ -82,8 +85,15 @@ try {
 
 document.body.appendChild(renderer.view);
 renderer.view.style.position = 'absolute';
+// window.innerWidth/innerHeight grow with the 1024px canvas on phones; the
+// document element's client size is the real visible area.
+function viewSize() {
+  var e = document.documentElement;
+  return { w: e.clientWidth, h: e.clientHeight };
+}
 function layout() {
-  var r = fitToWindow(window.innerWidth, window.innerHeight, w, h);
+  var vs = viewSize();
+  var r = fitToWindow(vs.w, vs.h, w, h);
   var s = renderer.view.style;
   s.width = r.width + 'px'; s.height = r.height + 'px';
   s.left = r.left + 'px';   s.top = r.top + 'px';
@@ -93,12 +103,13 @@ function layout() {
   hud.right = (r.left + r.width * 0.02) + 'px';
   var credit = document.getElementById('credit').style;
   credit.left = (r.left + r.width * 0.02) + 'px';
-  credit.bottom = (window.innerHeight - r.top - r.height + r.height * 0.02) + 'px';
+  credit.bottom = (vs.h - r.top - r.height + r.height * 0.02) + 'px';
   credit.fontSize = Math.max(11, r.height * 0.018) + 'px';
   hud.fontSize = Math.max(18, r.height * 0.045) + 'px';
 }
 layout();
 window.addEventListener('resize', layout);
+window.addEventListener('orientationchange', layout);
 
 var stage      = new PIXI.Container();
 var container  = new PIXI.Container();
@@ -190,18 +201,14 @@ PIXI.loader
     } catch(e) {
     }
 
-    window.onmousemove = function(e) { mousex = e.clientX; mousey = e.clientY; };
-    window.ontouchmove = function(e) {
-      mousex = e.targetTouches[0].clientX * 2;
-      mousey = e.targetTouches[0].clientY;
-    };
+    // Track the pointer for the cat's displacement effect (mouse and touch)
+    window.addEventListener('pointermove', function(e) { mousex = e.clientX; mousey = e.clientY; });
 
-    // CLICK — use both canvas click and document click for Firefox compat
-    document.addEventListener('click', function(e) {
-      var rect = renderer.view.getBoundingClientRect();
-      var tx = (e.clientX - rect.left) / rect.width  * w;
-      var ty = (e.clientY - rect.top)  / rect.height * h;
-      fireLaser(tx, ty);
+    // Fire on pointerdown: PixiJS 3's touch handling calls preventDefault on the
+    // canvas, which suppresses the synthesized click on phones and tablets.
+    document.addEventListener('pointerdown', function(e) {
+      var p = toCanvasPoint(e.clientX, e.clientY, renderer.view.getBoundingClientRect(), w, h);
+      if (p) fireLaser(p.x, p.y);
     });
 
     animate();
@@ -309,8 +316,8 @@ function animate() {
     }
   }
 
-  catf.scale.x = (window.innerWidth/2  - mousex) / 80 + 6 * Math.sin(d/1000);
-  catf.scale.y = (window.innerHeight/2 - mousey) / 80 + 6 * Math.cos(d/1200);
+  catf.scale.x = (viewSize().w/2 - mousex) / 80 + 6 * Math.sin(d/1000);
+  catf.scale.y = (viewSize().h/2 - mousey) / 80 + 6 * Math.cos(d/1200);
 
   // LASERS
   laserLayer.removeChildren();
