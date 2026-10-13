@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { pickleX } = require('../pickles.js');
+const { pickleX } = require('../src/pickles.js');
 
 const W = 1024, COUNT = 5;
 const xs = (t) => Array.from({ length: COUNT }, (_, i) => pickleX(t, i, COUNT, W));

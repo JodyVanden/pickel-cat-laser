@@ -27,14 +27,17 @@ or `python3 -m http.server` and open `http://localhost:8000/`. No build step, no
 The logic that can be tested without a browser lives in small modules with plain Node tests (Node 18+):
 
 ```sh
-node --test test/eyes.test.js test/layout.test.js test/pickles.test.js
+node --test test/*.test.js
 ```
 
-| Module       | What it does                                                        |
-| ------------ | ------------------------------------------------------------------- |
-| `eyes.js`    | Where the lasers start, locked to the cat's eyes as it wobbles      |
-| `layout.js`  | Fits the 1024×768 canvas to any window, keeping the aspect ratio    |
-| `pickles.js` | Evenly spaced pickle motion, so they never bunch up                 |
+| Module              | What it does                                                     |
+| ------------------- | ---------------------------------------------------------------- |
+| `src/eyes.js`       | Where the lasers start, locked to the cat's eyes as it wobbles   |
+| `src/layout.js`     | Fits the 1024×768 canvas to any window, keeping the aspect ratio |
+| `src/pickles.js`    | Evenly spaced pickle motion, so they never bunch up              |
+| `src/loaderror.js`  | The message shown if the game can't load its assets              |
+
+Images live in `assets/images/` and the music in `assets/audio/`.
 
 ## How it works
 

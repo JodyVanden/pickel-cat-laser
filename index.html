@@ -35,7 +35,7 @@ canvas { display: block; }
 </style>
 </head>
 <body>
-<audio id="song" loop src="interstellar.mp3"></audio>
+<audio id="song" loop src="assets/audio/interstellar.mp3"></audio>
 <div id="hud">☠ PICKLES: <span id="kills">0</span></div>
 <div id="credit">remix of <a href="https://dn.ht/picklecat/" target="_blank" rel="noopener">Pickle Cat</a> by Denis Hotson<br>
   built by Jody ·
@@ -46,10 +46,10 @@ canvas { display: block; }
 <div id="hint">⚡ CLICK TO FIRE LASER ⚡</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.11/pixi.min.js"></script>
-<script src="eyes.js"></script>
-<script src="layout.js"></script>
-<script src="pickles.js"></script>
-<script src="loaderror.js"></script>
+<script src="src/eyes.js"></script>
+<script src="src/layout.js"></script>
+<script src="src/pickles.js"></script>
+<script src="src/loaderror.js"></script>
 <script>
 
 function showLoadError(detail) {
@@ -117,11 +117,11 @@ var lasers = [], particles = [];
 
 
 PIXI.loader
-  .add('bg',              'M3VDxHJ.jpg')
-  .add('pickle',          'dill-pickle.png')
-  .add('cat',             'mesmercat.png')
-  .add('catdisplacement', 'mesmercatdisplacement.jpg')
-  .add('displacement',    'clouds.jpg')
+  .add('bg',              'assets/images/M3VDxHJ.jpg')
+  .add('pickle',          'assets/images/dill-pickle.png')
+  .add('cat',             'assets/images/mesmercat.png')
+  .add('catdisplacement', 'assets/images/mesmercatdisplacement.jpg')
+  .add('displacement',    'assets/images/clouds.jpg')
   .load(function(loader, resources) {
 
 

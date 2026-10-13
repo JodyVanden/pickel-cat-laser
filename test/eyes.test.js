@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { getEyePositions } = require('../eyes.js');
+const { getEyePositions } = require('../src/eyes.js');
 
 // mesmercat.png is 500x333; pupils measured at (199,103) and (271,96); pivot (250,320)
 const TEX_EYES = [[199, 103], [271, 96]];

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { fitToWindow } = require('../layout.js');
+const { fitToWindow } = require('../src/layout.js');
 
 test('wide window: height-limited, centered horizontally, aspect kept', () => {
   const r = fitToWindow(2560, 1080, 1024, 768);

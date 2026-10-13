@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { loadErrorMessage } = require('../loaderror.js');
+const { loadErrorMessage } = require('../src/loaderror.js');
 
 test('file:// page tells the user to use a local server', () => {
   const m = loadErrorMessage('file:');
