@@ -18,12 +18,24 @@ canvas { display: block; }
   letter-spacing: 3px; pointer-events: none; z-index: 10;
   animation: fadehint 3s ease 2s forwards;
 }
+#credit {
+  line-height: 1.5;
+  position: fixed; z-index: 10; font-family: monospace; letter-spacing: 1px;
+  color: rgba(255,255,255,0.45); text-shadow: 0 0 6px rgba(0,0,0,0.9);
+}
+#credit a { color: inherit; text-decoration: none; }
+#credit a:hover, #credit a:focus-visible { color: #fff; text-decoration: underline; }
 @keyframes fadehint { to { opacity: 0; } }
 </style>
 </head>
 <body>
 <audio id="song" loop src="interstellar.mp3"></audio>
 <div id="hud">☠ PICKLES: <span id="kills">0</span></div>
+<div id="credit">remix of <a href="https://dn.ht/picklecat/" target="_blank" rel="noopener">Pickle Cat</a> by Denis Hotson<br>
+  built by Jody ·
+  <a href="https://jodyvanden.github.io/cv/" target="_blank" rel="noopener">CV</a> ·
+  <a href="https://github.com/jodyvanden" target="_blank" rel="noopener">GitHub</a> ·
+  <a href="https://www.linkedin.com/in/jodyvandenschrick" target="_blank" rel="noopener">LinkedIn</a></div>
 <div id="hint">⚡ CLICK TO FIRE LASER ⚡</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.11/pixi.min.js"></script>
@@ -37,6 +49,8 @@ var song = document.getElementById('song');
 song.volume = 0.6;
 document.body.addEventListener('click',      function() { song.play(); });
 document.body.addEventListener('touchstart', function() { song.play(); });
+
+document.getElementById('credit').addEventListener('click', function(e) { e.stopPropagation(); });
 
 var w = 1024, h = 768;
 
@@ -59,6 +73,10 @@ function layout() {
   var hud = document.getElementById('hud').style;
   hud.top = (r.top + r.height * 0.02) + 'px';
   hud.right = (r.left + r.width * 0.02) + 'px';
+  var credit = document.getElementById('credit').style;
+  credit.left = (r.left + r.width * 0.02) + 'px';
+  credit.bottom = (window.innerHeight - r.top - r.height + r.height * 0.02) + 'px';
+  credit.fontSize = Math.max(11, r.height * 0.018) + 'px';
   hud.fontSize = Math.max(18, r.height * 0.045) + 'px';
 }
 layout();
