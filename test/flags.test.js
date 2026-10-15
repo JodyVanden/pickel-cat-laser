@@ -2,8 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { parseFlags } = require('../src/flags.js');
 
-const none = { stage: false, bg: false, pickle: false, cat: false };
-const all  = { stage: true,  bg: true,  pickle: true,  cat: true  };
+const none = { stage: false, bg: false, bgsplit: false, bgdisp: false, pickle: false, cat: false };
+const all  = { stage: true,  bg: true,  bgsplit: true,  bgdisp: true,  pickle: true,  cat: true  };
 
 test('no query string: everything off', () => {
   assert.deepStrictEqual(parseFlags(''), { debug: false, nofx: false, off: none });
@@ -24,13 +24,18 @@ test('bare ?nofx or ?nofx=1 disables every filter group', () => {
 
 test('?nofx=stage,bg disables only the listed groups', () => {
   const f = parseFlags('?nofx=stage,bg');
-  assert.deepStrictEqual(f.off, { stage: true, bg: true, pickle: false, cat: false });
+  assert.deepStrictEqual(f.off, { stage: true, bg: true, bgsplit: false, bgdisp: false, pickle: false, cat: false });
   assert.strictEqual(f.nofx, false);
-  assert.deepStrictEqual(parseFlags('?nofx=cat,pickle').off, { stage: false, bg: false, pickle: true, cat: true });
+  assert.deepStrictEqual(parseFlags('?nofx=cat,pickle').off, { stage: false, bg: false, bgsplit: false, bgdisp: false, pickle: true, cat: true });
 });
 
 test('unknown groups and =0/=false are ignored', () => {
   assert.deepStrictEqual(parseFlags('?nofx=bogus').off, none);
   assert.deepStrictEqual(parseFlags('?nofx=0').off, none);
   assert.deepStrictEqual(parseFlags('?nofx=false&x=1').off, none);
+});
+
+test('?nofx=bgsplit and ?nofx=bgdisp switch off one background filter each', () => {
+  assert.deepStrictEqual(parseFlags('?nofx=bgsplit').off, { ...none, bgsplit: true });
+  assert.deepStrictEqual(parseFlags('?nofx=bgdisp').off,  { ...none, bgdisp: true });
 });

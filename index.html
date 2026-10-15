@@ -175,7 +175,10 @@ PIXI.loader
     f2.red.x = -2; f2.red.y = 2;
     f2.green.x = 0; f2.green.y = 0;
     f2.blue.x = 2;  f2.blue.y = -2;
-    if (!flags.off.bg) container.filters = [f2, f1];
+    var bgFilters = [];
+    if (!flags.off.bg && !flags.off.bgsplit) bgFilters.push(f2);
+    if (!flags.off.bg && !flags.off.bgdisp)  bgFilters.push(f1);
+    if (bgFilters.length) container.filters = bgFilters;
     container.addChild(d1);
 
     // PICKLES

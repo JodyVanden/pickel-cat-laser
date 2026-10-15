@@ -1,8 +1,8 @@
 // URL switches:
 //   ?debug            diagnostics overlay
 //   ?nofx             disable every WebGL filter
-//   ?nofx=stage,bg    disable only some groups: stage | bg | pickle | cat
-var FX_GROUPS = ['stage', 'bg', 'pickle', 'cat'];
+//   ?nofx=stage,bg    disable only some groups: stage | bg (both) | bgsplit | bgdisp | pickle | cat
+var FX_GROUPS = ['stage', 'bg', 'bgsplit', 'bgdisp', 'pickle', 'cat'];
 function parseFlags(search) {
   var params = new URLSearchParams(search || '');
   function on(name) {
