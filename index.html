@@ -54,6 +54,7 @@ canvas { display: block; }
 <script src="src/loaderror.js"></script>
 <script src="src/pointer.js"></script>
 <script src="src/flags.js"></script>
+<script src="src/heal.js"></script>
 <script>
 
 function showLoadError(detail) {
@@ -236,6 +237,7 @@ PIXI.loader
     });
 
     dg('loaded; starting animate');
+    setTimeout(autoHeal, 1200);
     if (flags.debug) setTimeout(runDiagnostics, 2500);
     animate();
   });
@@ -319,42 +321,70 @@ function checkHit(lx, ly) {
   return false;
 }
 
-// ?debug: render each part alone and count the pixels it draws, so a blank
-// canvas on some browser/GPU can be traced to the exact filter at fault.
-function runDiagnostics() {
+// Share of the canvas (0-100) that a part draws when rendered alone, or the
+// whole scene for part === 'all'. Used to detect filters a GPU can't run.
+var coverageBuf;
+function coverage(part) {
   var gl = renderer.gl;
-  if (!gl) { dg('diag: Canvas renderer (no WebGL)'); return; }
-  var buf = new Uint8Array(w * h * 4);
-  function drawn() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    var n = 0;
-    for (var i = 0; i < buf.length; i += 4) { if (buf[i] + buf[i+1] + buf[i+2] > 30) n++; }
-    return Math.round(100 * n / (w * h)) + '%';
+  if (!gl) return null;
+  coverageBuf = coverageBuf || new Uint8Array(w * h * 4);
+  while (gl.getError() !== gl.NO_ERROR) {}
+  var saved = [container.visible, foreground.visible, laserLayer.visible, fxLayer.visible, cat.visible]
+    .concat(pickles.map(function(p) { return p.visible; }));
+  laserLayer.visible = fxLayer.visible = false;
+  if (part !== 'all') {
+    container.visible = part === 'bg';
+    foreground.visible = part !== 'bg';
+    cat.visible = part === 'cat';
+    pickles.forEach(function(p) { p.visible = part === 'pickles'; });
   }
-  function trial(name, setup, teardown) {
-    while (gl.getError() !== gl.NO_ERROR) {}
-    var saved = [container.visible, foreground.visible, laserLayer.visible, fxLayer.visible, stage.filters];
-    stage.filters = null;
-    laserLayer.visible = fxLayer.visible = false;
-    setup();
-    renderer.render(stage);
-    var res = drawn(), err = gl.getError();
-    teardown();
-    container.visible = saved[0]; foreground.visible = saved[1];
-    laserLayer.visible = saved[2]; fxLayer.visible = saved[3]; stage.filters = saved[4];
-    dg('diag ' + name + ': drawn=' + res + ' glError=' + err);
-  }
-  var bgFilters = container.filters, catFilters = cat.filters;
-  var onlyBg  = function() { container.visible = true;  foreground.visible = false; };
-  var onlyFg  = function() { container.visible = false; foreground.visible = true;  };
-  var pk = function(v) { pickles.forEach(function(p) { p.visible = v; }); };
-  var none = function() {};
-  trial('bg   +filters', onlyBg, none);
-  trial('bg   no filter', function() { onlyBg(); container.filters = null; }, function() { container.filters = bgFilters; });
-  trial('cat  +filter', function() { onlyFg(); pk(false); }, function() { pk(true); });
-  trial('cat  no filter', function() { onlyFg(); pk(false); cat.filters = null; }, function() { pk(true); cat.filters = catFilters; });
-  trial('pickles', function() { onlyFg(); cat.visible = false; }, function() { cat.visible = true; });
+  renderer.render(stage);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, coverageBuf);
+  var n = 0;
+  for (var i = 0; i < coverageBuf.length; i += 4) { if (coverageBuf[i] + coverageBuf[i+1] + coverageBuf[i+2] > 30) n++; }
+  var err = gl.getError();
+  container.visible = saved[0]; foreground.visible = saved[1];
+  laserLayer.visible = saved[2]; fxLayer.visible = saved[3]; cat.visible = saved[4];
+  pickles.forEach(function(p, i) { p.visible = saved[5 + i]; });
+  return { pct: 100 * n / (w * h), err: err };
+}
+
+// Switch off any filter this GPU/browser cannot run (it would draw nothing, or
+// blank the scene). Healthy devices keep every effect.
+var filterGroups = [
+  { part: 'cat',     get: function() { return cat.filters; },       set: function(v) { cat.filters = v; } },
+  { part: 'pickles', get: function() { return pickles[0].filters; }, set: function(v) { pickles.forEach(function(p) { p.filters = v; }); } },
+  { part: 'bg',      get: function() { return container.filters; }, set: function(v) { container.filters = v; } }
+];
+function autoHeal() {
+  if (!renderer.gl) return;
+  var disabled = [];
+  filterGroups.forEach(function(g) {
+    var original = g.get();
+    if (!original) return;
+    var withFx = coverage(g.part);
+    g.set(null);
+    var withoutFx = coverage(g.part);
+    if (filterBroken(withFx.pct, withoutFx.pct)) {
+      disabled.push(g.part);
+      console.warn('Pickle Cat: disabled the ' + g.part + ' filter (drew ' + Math.round(withFx.pct) + '% vs ' + Math.round(withoutFx.pct) + '% without it)');
+      dg('autoheal: disabled ' + g.part + ' filter (' + Math.round(withFx.pct) + '% vs ' + Math.round(withoutFx.pct) + '%)');
+    } else {
+      g.set(original);
+    }
+  });
+  if (!disabled.length) dg('autoheal: all filters healthy');
+}
+
+// ?debug: print how much each part draws, with and without its filters.
+function runDiagnostics() {
+  if (!renderer.gl) { dg('diag: Canvas renderer (no WebGL)'); return; }
+  function line(name, c) { dg('diag ' + name + ': drawn=' + Math.round(c.pct) + '% glError=' + c.err); }
+  filterGroups.forEach(function(g) {
+    line(g.part + ' (as now)', coverage(g.part));
+  });
+  line('full scene', coverage('all'));
   dg('diag done');
 }
 
